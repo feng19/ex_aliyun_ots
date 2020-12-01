@@ -1204,12 +1204,12 @@ defmodule ExAliyunOts do
   @spec start_local_transaction(instance, table :: String.t(), partition_key :: tuple()) ::
           {:ok, map()} | {:error, ExAliyunOts.Error.t()}
   def start_local_transaction(instance, table, partition_key) do
-    var_start_local_transaction = %Var.Transaction.StartLocalTransactionRequest{
+    start_local_transaction = %TableStore.StartLocalTransactionRequest{
       table_name: table,
-      partition_key: partition_key
+      key: partition_key
     }
 
-    Client.start_local_transaction(instance, var_start_local_transaction)
+    Client.start_local_transaction(instance, start_local_transaction)
   end
 
   @doc """
@@ -1274,7 +1274,7 @@ defmodule ExAliyunOts do
               (stream_expiration_time >= 1 and stream_expiration_time <= 24) do
     stream_spec =
       TableStore.StreamSpecification.new(
-        is_enabled: true,
+        enable_stream: true,
         expiration_time: stream_expiration_time
       )
 
@@ -1282,7 +1282,7 @@ defmodule ExAliyunOts do
   end
 
   defp put_stream_spec(request, %{is_enabled: false}) do
-    stream_spec = TableStore.StreamSpecification.new(is_enabled: false)
+    stream_spec = TableStore.StreamSpecification.new(enable_stream: false)
     %{request | stream_spec: stream_spec}
   end
 

@@ -2,13 +2,11 @@ defmodule ExAliyunOtsTest.Support.SearchGeo do
   import ExAliyunOts.DSL, only: [condition: 1]
   require Logger
   require ExAliyunOts.Const.PKType, as: PKType
-  require ExAliyunOts.Const.Search.FieldType, as: FieldType
 
   import ExAliyunOts.Search,
     only: [field_schema_keyword: 1, field_schema_geo_point: 1, field_schema_integer: 1]
 
-  alias ExAliyunOts.{Var, Var.Search, Client}
-  alias ExAliyunOts.TableStoreSearch
+  alias ExAliyunOts.{Var, Client}
 
   def init(instance_key, table, index_name) do
     create_table(instance_key, table)
@@ -21,7 +19,7 @@ defmodule ExAliyunOtsTest.Support.SearchGeo do
   end
 
   def clean(instance_key, table, index_name) do
-    {:ok, _response} = Client.delete_search_index(instance_key, table, index_name)
+    {:ok, _response} = ExAliyunOts.delete_search_index(instance_key, table, index_name)
 
     ExAliyunOts.Client.delete_table(instance_key, table)
     Logger.info("clean search_indexes and delete `#{table}` table")

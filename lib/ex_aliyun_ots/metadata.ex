@@ -224,18 +224,6 @@ defmodule ExAliyunOts.Var.Search do
     defstruct path: nil, filter: nil
   end
 
-  defmodule ScoreSort do
-    @moduledoc false
-    require ExAliyunOts.Const.Search.SortOrder, as: SortOrder
-    defstruct order: SortOrder.asc()
-  end
-
-  defmodule PrimaryKeySort do
-    @moduledoc false
-    require ExAliyunOts.Const.Search.SortOrder, as: SortOrder
-    defstruct order: SortOrder.asc()
-  end
-
   defmodule ColumnsToGet do
     @moduledoc false
     require ExAliyunOts.Const.Search.ColumnReturnType, as: ColumnReturnType
@@ -278,6 +266,7 @@ defmodule ExAliyunOts.Var.Search do
     @moduledoc false
     alias ExAliyunOts.Const.Search.ColumnReturnType
     require ColumnReturnType
+
     defstruct table_name: "",
               index_name: "",
               columns_to_get: %ColumnsToGet{
@@ -285,46 +274,6 @@ defmodule ExAliyunOts.Var.Search do
               },
               session_id: "",
               scan_query: %ScanQuery{}
-  end
-
-  defmodule MatchQuery do
-    @moduledoc false
-    defstruct field_name: "", text: "", minimum_should_match: 1, operator: nil
-  end
-
-  defmodule MatchAllQuery do
-    @moduledoc false
-    defstruct []
-  end
-
-  defmodule MatchPhraseQuery do
-    @moduledoc false
-    defstruct field_name: "", text: ""
-  end
-
-  defmodule TermQuery do
-    @moduledoc false
-    defstruct field_name: "", term: nil
-  end
-
-  defmodule TermsQuery do
-    @moduledoc false
-    defstruct field_name: "", terms: []
-  end
-
-  defmodule PrefixQuery do
-    @moduledoc false
-    defstruct field_name: "", prefix: nil
-  end
-
-  defmodule RangeQuery do
-    @moduledoc false
-    defstruct field_name: "", from: nil, to: nil, include_lower: true, include_upper: true
-  end
-
-  defmodule WildcardQuery do
-    @moduledoc false
-    defstruct field_name: "", value: nil
   end
 
   defmodule BoolQuery do
@@ -340,26 +289,6 @@ defmodule ExAliyunOts.Var.Search do
     # 多值字段获取文档得分的模式，一个字段多个值的情况下，采用哪个值来进行排序
     # 例如：有一个小学生学生状态监测系统，其中存了小学生的身高，但是小学生身高一直在长，所以“身高”这个字段，采用了array的方式。然后我们查询的时候，想根据身高进行排序，就可以设置`score_mode`为`max`，这样就能得到最近的一次身高。
     defstruct path: "", query: nil, score_mode: ScoreMode.none()
-  end
-
-  defmodule GeoDistanceQuery do
-    @moduledoc false
-    defstruct field_name: "", center_point: nil, distance: nil
-  end
-
-  defmodule GeoBoundingBoxQuery do
-    @moduledoc false
-    defstruct field_name: "", top_left: nil, bottom_right: nil
-  end
-
-  defmodule GeoPolygonQuery do
-    @moduledoc false
-    defstruct field_name: "", points: []
-  end
-
-  defmodule ExistsQuery do
-    @moduledoc false
-    defstruct field_name: ""
   end
 
   defmodule Aggregation do
@@ -392,37 +321,4 @@ defmodule ExAliyunOts.Var.Search do
               sub_aggs: nil,
               ranges: nil
   end
-
-  defmodule GroupKeySort do
-    @moduledoc false
-    require ExAliyunOts.Const.Search.SortOrder, as: SortOrder
-    defstruct order: SortOrder.asc()
-  end
-
-  defmodule RowCountSort do
-    @moduledoc false
-    require ExAliyunOts.Const.Search.SortOrder, as: SortOrder
-    defstruct order: SortOrder.asc()
-  end
-
-  defmodule SubAggSort do
-    @moduledoc false
-    require ExAliyunOts.Const.Search.SortOrder, as: SortOrder
-    defstruct order: SortOrder.desc(), sub_agg_name: nil
-  end
-
 end
-
-# Transaction
-
-defmodule ExAliyunOts.Var.Transaction do
-  @moduledoc false
-
-  defmodule StartLocalTransactionRequest do
-    @moduledoc false
-    defstruct table_name: "", partition_key: {}
-  end
-end
-
-# ParallelScan
-#

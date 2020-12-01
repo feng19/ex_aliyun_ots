@@ -3,7 +3,6 @@ defmodule ExAliyunOtsTest.Transaction do
   import ExAliyunOts.DSL, only: [condition: 1]
   require Logger
   alias ExAliyunOts.{Client, Var}
-  alias ExAliyunOts.Var.Transaction.StartLocalTransactionRequest
   alias ExAliyunOts.Const.{OperationType, PKType}
   require OperationType
   require PKType
@@ -55,12 +54,8 @@ defmodule ExAliyunOtsTest.Transaction do
   end
 
   test "start and abort" do
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: {"key", "key1"}
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
+    partition_key = {"key", "key1"}
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
 
     transaction_id = response.transaction_id
     abort_response = Client.abort_transaction(@instance_key, transaction_id)
@@ -69,13 +64,7 @@ defmodule ExAliyunOtsTest.Transaction do
 
   test "put row with transaction_id and commit" do
     partition_key = {"key", "key1"}
-
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: partition_key
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
 
     transaction_id = response.transaction_id
 
@@ -130,23 +119,14 @@ defmodule ExAliyunOtsTest.Transaction do
 
   test "put row with transaction_id and abort it" do
     partition_key = {"key", "key2"}
-
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: partition_key
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
-
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
     transaction_id = response.transaction_id
-
-    condition = condition(:ignore)
 
     var_put_row = %Var.PutRow{
       table_name: @table,
       primary_keys: [partition_key],
       attribute_columns: [{"attr2", "2"}],
-      condition: condition,
+      condition: condition(:ignore),
       transaction_id: transaction_id
     }
 
@@ -175,13 +155,7 @@ defmodule ExAliyunOtsTest.Transaction do
 
   test "update row with transaction_id and commit" do
     partition_key = {"key", "key1"}
-
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: partition_key
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
     transaction_id = response.transaction_id
 
     condition = condition(:ignore)
@@ -246,20 +220,13 @@ defmodule ExAliyunOtsTest.Transaction do
       condition: condition(:ignore)
     })
 
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: partition_key
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
     transaction_id = response.transaction_id
-
-    condition = condition(:ignore)
 
     var_delete_row = %Var.DeleteRow{
       table_name: @table,
       primary_keys: [partition_key],
-      condition: condition
+      condition: condition(:ignore)
     }
 
     {:error, error} = Client.delete_row(@instance_key, var_delete_row)
@@ -302,17 +269,8 @@ defmodule ExAliyunOtsTest.Transaction do
 
   test "batch write with transaction_id and commit" do
     partition_key = {"key", "key1"}
-
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: partition_key
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
-
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
     transaction_id = response.transaction_id
-
-    condition = condition(:ignore)
 
     # If you have multi primary keys,
     # you can use partition_key (ONLY one) to batch write multi rows with transaction
@@ -323,13 +281,12 @@ defmodule ExAliyunOtsTest.Transaction do
           type: OperationType.put(),
           primary_keys: [partition_key],
           updates: [{"new_added1", 100}, {"new_added2", 101}],
-          condition: condition
+          condition: condition(:ignore)
         }
       ]
     }
 
     Client.batch_write_row(@instance_key, batch_write_request, transaction_id: transaction_id)
-
     Client.commit_transaction(@instance_key, transaction_id)
 
     var_get_row = %Var.GetRow{
@@ -361,13 +318,7 @@ defmodule ExAliyunOtsTest.Transaction do
       condition: condition(:ignore)
     })
 
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: partition_key
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
-
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
     transaction_id = response.transaction_id
 
     var_get_row = %Var.GetRow{
@@ -404,12 +355,7 @@ defmodule ExAliyunOtsTest.Transaction do
       condition: condition(:ignore)
     })
 
-    request = %StartLocalTransactionRequest{
-      table_name: @table,
-      partition_key: partition_key
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
     transaction_id = response.transaction_id
 
     var_get_range = %Var.GetRange{
@@ -454,12 +400,8 @@ defmodule ExAliyunOtsTest.Transaction do
       condition: condition
     })
 
-    request = %StartLocalTransactionRequest{
-      table_name: @table_range,
-      partition_key: {"key", "key1"}
-    }
-
-    {:ok, response} = Client.start_local_transaction(@instance_key, request)
+    partition_key = {"key", "key1"}
+    {:ok, response} = ExAliyunOts.start_local_transaction(@instance_key, @table, partition_key)
     transaction_id = response.transaction_id
 
     var_get_range = %Var.GetRange{

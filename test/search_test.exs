@@ -1,17 +1,12 @@
 defmodule ExAliyunOtsTest.Search do
   use ExUnit.Case
-
   require Logger
-
-  alias ExAliyunOts.Client
-  alias ExAliyunOts.Var.Search
-
+  require ExAliyunOts.Const.Search.FieldType, as: FieldType
+  require ExAliyunOts.Const.Search.ColumnReturnType, as: ColumnReturnType
+  require ExAliyunOts.Const.Search.SortOrder, as: SortOrder
   alias ExAliyunOtsTest.Support.Search, as: TestSupportSearch
-
-  alias ExAliyunOts.Const.Search.{FieldType, ColumnReturnType, SortOrder}
-  require FieldType
-  require ColumnReturnType
-  require SortOrder
+  alias ExAliyunOts.{Client, Var.Search, TableStoreSearch}
+  alias ExAliyunOtsTest.Support.Search, as: TestSupportSearch
 
   @instance_key EDCEXTestInstance
 
@@ -76,7 +71,7 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.MatchQuery{
+        query: %TableStoreSearch.MatchQuery{
           field_name: "age",
           text: "28"
         },
@@ -113,7 +108,7 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.MatchQuery{
+        query: %TableStoreSearch.MatchQuery{
           field_name: "age",
           text: "28"
         },
@@ -150,7 +145,7 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.TermQuery{
+        query: %TableStoreSearch.TermQuery{
           field_name: "name",
           term: "name_a1"
         },
@@ -189,7 +184,7 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.TermsQuery{
+        query: %TableStoreSearch.TermsQuery{
           field_name: "age",
           terms: [31, 28]
         },
@@ -248,7 +243,7 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.PrefixQuery{
+        query: %TableStoreSearch.PrefixQuery{
           field_name: "name",
           prefix: "name"
         },
@@ -278,7 +273,7 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.WildcardQuery{
+        query: %TableStoreSearch.WildcardQuery{
           field_name: "name",
           value: "name_*"
         },
@@ -308,10 +303,10 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.RangeQuery{
+        query: %TableStoreSearch.RangeQuery{
           field_name: "age",
-          from: 25,
-          to: 28
+          range_from: 25,
+          range_to: 28
         },
         sort: [
           %Search.FieldSort{field_name: "age", order: SortOrder.desc()}
@@ -342,14 +337,14 @@ defmodule ExAliyunOtsTest.Search do
       search_query: %Search.SearchQuery{
         query: %Search.BoolQuery{
           must: [
-            %Search.RangeQuery{
+            %TableStoreSearch.RangeQuery{
               field_name: "score",
-              from: 60,
-              to: 100
+              range_from: 60,
+              range_to: 100
             }
           ],
           must_not: [
-            %Search.TermQuery{
+            %TableStoreSearch.TermQuery{
               field_name: "age",
               term: "27"
             }
@@ -382,11 +377,11 @@ defmodule ExAliyunOtsTest.Search do
       search_query: %Search.SearchQuery{
         query: %Search.BoolQuery{
           should: [
-            %Search.TermQuery{
+            %TableStoreSearch.TermQuery{
               field_name: "age",
               term: "22"
             },
-            %Search.TermQuery{
+            %TableStoreSearch.TermQuery{
               field_name: "age",
               term: "28"
             }
@@ -423,7 +418,7 @@ defmodule ExAliyunOtsTest.Search do
       search_query: %Search.SearchQuery{
         query: %Search.NestedQuery{
           path: "content",
-          query: %Search.TermQuery{
+          query: %TableStoreSearch.TermQuery{
             field_name: "content.header",
             term: "header1"
           }
@@ -451,7 +446,7 @@ defmodule ExAliyunOtsTest.Search do
       table_name: @table,
       index_name: "test_search_index",
       search_query: %Search.SearchQuery{
-        query: %Search.ExistsQuery{field_name: "fake_nonindex_field"}
+        query: %TableStoreSearch.ExistsQuery{field_name: "fake_nonindex_field"}
       }
     }
 
@@ -463,7 +458,7 @@ defmodule ExAliyunOtsTest.Search do
 
     # search exists_query for `comment` field
     search_query = %Search.SearchQuery{
-      query: %Search.ExistsQuery{field_name: field_name_comment}
+      query: %TableStoreSearch.ExistsQuery{field_name: field_name_comment}
     }
 
     var_request = Map.put(var_request, :search_query, search_query)
@@ -477,7 +472,7 @@ defmodule ExAliyunOtsTest.Search do
       search_query: %Search.SearchQuery{
         query: %Search.BoolQuery{
           must_not: [
-            %Search.ExistsQuery{field_name: field_name_comment}
+            %TableStoreSearch.ExistsQuery{field_name: field_name_comment}
           ]
         },
         limit: 100

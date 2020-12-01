@@ -21,10 +21,7 @@ defmodule ExAliyunOtsTest.UpdateAndDescribeTable do
     result = ExAliyunOts.Client.create_table(@instance_key, var_create_table)
     assert result == :ok
 
-    stream = %TableStore.StreamSpec{
-      is_enabled: true,
-      expiration_time: 1
-    }
+    stream = %TableStore.StreamSpecification{enable_stream: true, expiration_time: 1}
 
     var_update_table = %Var.UpdateTable{
       table_name: table_name,

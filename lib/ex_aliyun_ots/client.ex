@@ -32,6 +32,7 @@ defmodule ExAliyunOts.Client do
     case Table.remote_describe_table(Config.get(instance_key), table_name) do
       {:ok, response} ->
         {:ok, %{response | shard_splits: decode_rows(response.shard_splits)}}
+
       error ->
         error
     end
@@ -39,9 +40,11 @@ defmodule ExAliyunOts.Client do
 
   def compute_split_points_by_size(instance_key, table_name, split_size) do
     encoded_request = Table.request_to_compute_split_points_by_size(table_name, split_size)
+
     case Table.remote_compute_split_points_by_size(Config.get(instance_key), encoded_request) do
       {:ok, response} ->
         {:ok, %{response | split_points: decode_rows(response.split_points)}}
+
       error ->
         error
     end
@@ -94,6 +97,7 @@ defmodule ExAliyunOts.Client do
     case Search.remote_search(Config.get(instance_key), var_search_request) do
       {:ok, response} ->
         {:ok, %{response | rows: decode_rows(response.rows)}}
+
       error ->
         error
     end
@@ -106,9 +110,11 @@ defmodule ExAliyunOts.Client do
 
   def parallel_scan(instance_key, var_scan_request) do
     encoded_request = Search.request_to_parallel_scan(var_scan_request)
+
     case Search.remote_parallel_scan(Config.get(instance_key), encoded_request) do
       {:ok, response} ->
         {:ok, %{response | rows: decode_rows(response.rows)}}
+
       error ->
         error
     end
@@ -126,11 +132,8 @@ defmodule ExAliyunOts.Client do
     Search.remote_describe_search_index(Config.get(instance_key), describe_search_index)
   end
 
-  def start_local_transaction(instance_key, var_start_local_transaction) do
-    Transaction.remote_start_local_transaction(
-      Config.get(instance_key),
-      var_start_local_transaction
-    )
+  def start_local_transaction(instance_key, start_local_transaction) do
+    Transaction.remote_start_local_transaction(Config.get(instance_key), start_local_transaction)
   end
 
   def commit_transaction(instance_key, transaction_id) do

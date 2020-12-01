@@ -1,23 +1,15 @@
 defmodule ExAliyunOts.MixinTest.Search do
   use ExUnit.Case
-
   @instance_key EDCEXTestInstance
-
-  use ExAliyunOts,
-    instance: @instance_key
-
+  use ExAliyunOts, instance: @instance_key
   require Logger
   alias ExAliyunOts.Client
   alias ExAliyunOts.Var.Search
-
   alias ExAliyunOtsTest.Support.Search, as: TestSupportSearch
 
   @table "test_search"
-
   @indexes ["test_search_index", "test_search_index2"]
-
   @table_group_by "test_search_group_by"
-
   @index_group_by "test_search_index_group_by"
 
   setup_all do

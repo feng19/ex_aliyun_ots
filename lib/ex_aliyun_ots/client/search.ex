@@ -1,5 +1,14 @@
 defmodule ExAliyunOts.Client.Search do
   @moduledoc false
+  import ExAliyunOts.Logger, only: [error: 1]
+  require ExAliyunOts.Const.Search.FieldType, as: FieldType
+  require ExAliyunOts.Const.Search.SortOrder, as: SortOrder
+  require ExAliyunOts.Const.Search.QueryType, as: QueryType
+  require ExAliyunOts.Const.Search.ScoreMode, as: ScoreMode
+  require ExAliyunOts.Const.Search.AggregationType, as: AggregationType
+  require ExAliyunOts.Const.Search.GroupByType, as: GroupByType
+  require ExAliyunOts.Const.Search.SortMode, as: SortMode
+  alias ExAliyunOts.{Http, Utils, Var.Search}
 
   alias ExAliyunOts.TableStoreSearch.{
     CreateSearchIndexRequest,
@@ -88,28 +97,6 @@ defmodule ExAliyunOts.Client.Search do
     SearchIndexSplitsOptions,
     ComputeSplitsResponse
   }
-
-  alias ExAliyunOts.{Http, Utils}
-  alias ExAliyunOts.Var.Search
-
-  alias ExAliyunOts.Const.Search.{
-    FieldType,
-    SortOrder,
-    QueryType,
-    ScoreMode,
-    AggregationType,
-    GroupByType,
-    SortMode
-  }
-
-  import ExAliyunOts.Logger, only: [error: 1]
-  require FieldType
-  require SortOrder
-  require QueryType
-  require ScoreMode
-  require AggregationType
-  require GroupByType
-  require SortMode
 
   @variant_type_integer 0x0
   @variant_type_double 0x1
@@ -235,9 +222,7 @@ defmodule ExAliyunOts.Client.Search do
   def request_to_compute_splits(table_name, index_name) do
     ComputeSplitsRequest.new(
       table_name: table_name,
-      search_index_splits_options: SearchIndexSplitsOptions.new(
-        index_name: index_name
-      )
+      search_index_splits_options: SearchIndexSplitsOptions.new(index_name: index_name)
     )
     |> ComputeSplitsRequest.encode()
   end
@@ -258,7 +243,6 @@ defmodule ExAliyunOts.Client.Search do
         scan_query: scan_query,
         session_id: session_id
       }) do
-
     proto_scan_query =
       ScanQuery.new(
         query: prepare_query(scan_query.query),
@@ -386,6 +370,7 @@ defmodule ExAliyunOts.Client.Search do
 
   defp prepare_sort([]), do: nil
   defp prepare_sort(nil), do: nil
+
   defp prepare_sort(sorters) when is_list(sorters) do
     prepared_sorters =
       sorters
@@ -395,9 +380,9 @@ defmodule ExAliyunOts.Client.Search do
     Sort.new(sorter: prepared_sorters)
   end
 
-  defp prepare_sorter(%Search.PrimaryKeySort{order: order}) do
+  defp prepare_sorter(sort = %PrimaryKeySort{order: order}) do
     assert_valid_sort_order(order)
-    Sorter.new(pk_sort: PrimaryKeySort.new(order: order))
+    Sorter.new(pk_sort: sort)
   end
 
   defp prepare_sorter(%Search.FieldSort{
@@ -449,9 +434,9 @@ defmodule ExAliyunOts.Client.Search do
     )
   end
 
-  defp prepare_sorter(%Search.ScoreSort{order: order}) do
+  defp prepare_sorter(sort = %ScoreSort{order: order}) do
     assert_valid_sort_order(order)
-    Sorter.new(score_sort: ScoreSort.new(order: order))
+    Sorter.new(score_sort: sort)
   end
 
   defp prepare_sorter(sorter) do
@@ -724,16 +709,16 @@ defmodule ExAliyunOts.Client.Search do
     map_group_by_sort(rest, [sorter | result])
   end
 
-  defp map_group_by_sorter(%Search.GroupKeySort{order: order}) do
-    GroupBySorter.new(group_key_sort: GroupKeySort.new(order: order))
+  defp map_group_by_sorter(sort = %GroupKeySort{}) do
+    GroupBySorter.new(group_key_sort: sort)
   end
 
-  defp map_group_by_sorter(%Search.RowCountSort{order: order}) do
-    GroupBySorter.new(row_count_sort: RowCountSort.new(order: order))
+  defp map_group_by_sorter(sort = %RowCountSort{}) do
+    GroupBySorter.new(row_count_sort: sort)
   end
 
-  defp map_group_by_sorter(%Search.SubAggSort{sub_agg_name: sub_agg_name, order: order}) do
-    GroupBySorter.new(sub_agg_sort: SubAggSort.new(sub_agg_name: sub_agg_name, order: order))
+  defp map_group_by_sorter(sort = %SubAggSort{}) do
+    GroupBySorter.new(sub_agg_sort: sort)
   end
 
   defp map_group_by_ranges(nil, []), do: nil
@@ -773,102 +758,60 @@ defmodule ExAliyunOts.Client.Search do
     )
   end
 
-  defp prepare_query(%Search.MatchQuery{
-         field_name: field_name,
-         text: text,
-         minimum_should_match: minimum_should_match
-       }) do
-    proto_query =
-      MatchQuery.new(
-        field_name: field_name,
-        text: text,
-        minimum_should_match: minimum_should_match
-      )
-
+  defp prepare_query(proto_query = %MatchQuery{}) do
     Query.new(
       type: QueryType.match(),
       query: MatchQuery.encode(proto_query)
     )
   end
 
-  defp prepare_query(%Search.MatchAllQuery{}) do
-    proto_query = MatchAllQuery.new()
-
+  defp prepare_query(proto_query = %MatchAllQuery{}) do
     Query.new(
       type: QueryType.match_all(),
       query: MatchAllQuery.encode(proto_query)
     )
   end
 
-  defp prepare_query(%Search.MatchPhraseQuery{
-         field_name: field_name,
-         text: text
-       }) do
-    proto_query = MatchPhraseQuery.new(field_name: field_name, text: text)
-
+  defp prepare_query(proto_query = %MatchPhraseQuery{}) do
     Query.new(
       type: QueryType.match_phrase(),
       query: MatchPhraseQuery.encode(proto_query)
     )
   end
 
-  defp prepare_query(%Search.TermQuery{
-         field_name: field_name,
-         term: term
-       }) do
+  defp prepare_query(proto_query = %TermQuery{term: term}) do
     term_bytes = term_to_bytes(term)
-    proto_query = TermQuery.new(field_name: field_name, term: term_bytes)
 
     Query.new(
       type: QueryType.term(),
-      query: TermQuery.encode(proto_query)
+      query: TermQuery.encode(%{proto_query | term: term_bytes})
     )
   end
 
-  defp prepare_query(%Search.TermsQuery{
-         field_name: field_name,
-         terms: terms
-       }) do
-    terms_bytes = Enum.map(terms, fn term -> term_to_bytes(term) end)
-    proto_query = TermsQuery.new(field_name: field_name, terms: terms_bytes)
+  defp prepare_query(proto_query = %TermsQuery{terms: terms}) do
+    terms_bytes = Enum.map(terms, &term_to_bytes/1)
 
     Query.new(
       type: QueryType.terms(),
-      query: TermsQuery.encode(proto_query)
+      query: TermsQuery.encode(%{proto_query | terms: terms_bytes})
     )
   end
 
-  defp prepare_query(%Search.PrefixQuery{
-         field_name: field_name,
-         prefix: prefix
-       }) do
-    proto_query = PrefixQuery.new(field_name: field_name, prefix: prefix)
-
+  defp prepare_query(proto_query = %PrefixQuery{}) do
     Query.new(
       type: QueryType.prefix(),
       query: PrefixQuery.encode(proto_query)
     )
   end
 
-  defp prepare_query(%Search.WildcardQuery{
-         field_name: field_name,
-         value: value
-       }) do
-    proto_query = WildcardQuery.new(field_name: field_name, value: value)
-
+  defp prepare_query(proto_query = %WildcardQuery{}) do
     Query.new(
       type: QueryType.wildcard(),
       query: WildcardQuery.encode(proto_query)
     )
   end
 
-  defp prepare_query(%Search.RangeQuery{
-         field_name: field_name,
-         from: from,
-         to: to,
-         include_lower: include_lower,
-         include_upper: include_upper
-       }) do
+  defp prepare_query(proto_query = %RangeQuery{range_from: from, range_to: to}) do
     # `from` value is lower value, and `to` value is upper value.
     # if both of them are not nil, we should set "`from` <= `to`" as expected.
     cond do
@@ -883,21 +826,12 @@ defmodule ExAliyunOts.Client.Search do
         :ok
     end
 
-    bytes_from = if from == nil, do: nil, else: term_to_bytes(from)
-    bytes_to = if to == nil, do: nil, else: term_to_bytes(to)
-
-    proto_query =
-      RangeQuery.new(
-        field_name: field_name,
-        range_from: bytes_from,
-        range_to: bytes_to,
-        include_lower: include_lower,
-        include_upper: include_upper
-      )
+    bytes_from = if is_nil(from), do: nil, else: term_to_bytes(from)
+    bytes_to = if is_nil(to), do: nil, else: term_to_bytes(to)
 
     Query.new(
       type: QueryType.range(),
-      query: RangeQuery.encode(proto_query)
+      query: RangeQuery.encode(%{proto_query | range_from: bytes_from, range_to: bytes_to})
     )
   end
 
@@ -970,20 +904,14 @@ defmodule ExAliyunOts.Client.Search do
     )
   end
 
-  defp prepare_query(%Search.GeoDistanceQuery{
-         field_name: field_name,
-         center_point: center_point,
-         distance: distance
-       })
+  defp prepare_query(
+         proto_query = %GeoDistanceQuery{
+           center_point: center_point,
+           distance: distance
+         }
+       )
        when is_number(distance) and distance >= 0 do
     if Utils.valid_geo_point?(center_point) do
-      proto_query =
-        GeoDistanceQuery.new(
-          field_name: field_name,
-          center_point: center_point,
-          distance: distance
-        )
-
       Query.new(
         type: QueryType.geo_distance(),
         query: GeoDistanceQuery.encode(proto_query)
@@ -994,19 +922,10 @@ defmodule ExAliyunOts.Client.Search do
     end
   end
 
-  defp prepare_query(%Search.GeoBoundingBoxQuery{
-         field_name: field_name,
-         top_left: top_left,
-         bottom_right: bottom_right
-       }) do
+  defp prepare_query(
+         proto_query = %GeoBoundingBoxQuery{top_left: top_left, bottom_right: bottom_right}
+       ) do
     assert_valid_geo_points([top_left, bottom_right])
-
-    proto_query =
-      GeoBoundingBoxQuery.new(
-        field_name: field_name,
-        top_left: top_left,
-        bottom_right: bottom_right
-      )
 
     Query.new(
       type: QueryType.geo_bounding_box(),
@@ -1014,17 +933,8 @@ defmodule ExAliyunOts.Client.Search do
     )
   end
 
-  defp prepare_query(%Search.GeoPolygonQuery{
-         field_name: field_name,
-         points: points
-       }) do
+  defp prepare_query(proto_query = %GeoPolygonQuery{points: points}) do
     assert_valid_geo_points(points)
-
-    proto_query =
-      GeoPolygonQuery.new(
-        field_name: field_name,
-        points: points
-      )
 
     Query.new(
       type: QueryType.geo_polygon(),
@@ -1032,11 +942,7 @@ defmodule ExAliyunOts.Client.Search do
     )
   end
 
-  defp prepare_query(%Search.ExistsQuery{
-         field_name: field_name
-       }) do
-    proto_query = ExistsQuery.new(field_name: field_name)
-
+  defp prepare_query(proto_query = %ExistsQuery{}) do
     Query.new(
       type: QueryType.exists(),
       query: ExistsQuery.encode(proto_query)

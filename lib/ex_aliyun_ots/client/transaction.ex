@@ -1,6 +1,6 @@
 defmodule ExAliyunOts.Client.Transaction do
   @moduledoc false
-
+  import ExAliyunOts.Logger, only: [debug: 1]
   alias ExAliyunOts.{PlainBuffer, Http}
 
   alias ExAliyunOts.TableStore.{
@@ -12,19 +12,11 @@ defmodule ExAliyunOts.Client.Transaction do
     AbortTransactionResponse
   }
 
-  import ExAliyunOts.Logger, only: [debug: 1]
+  def remote_start_local_transaction(instance, start_local_transaction) do
+    partition_key = PlainBuffer.serialize_primary_keys([start_local_transaction.key])
 
-  defp request_to_start_local_transaction(var_start_transaction) do
-    table_name = var_start_transaction.table_name
-    partition_key = PlainBuffer.serialize_primary_keys([var_start_transaction.partition_key])
-
-    [table_name: table_name, key: partition_key]
-    |> StartLocalTransactionRequest.new()
-    |> StartLocalTransactionRequest.encode()
-  end
-
-  def remote_start_local_transaction(instance, var_start_local_transaction) do
-    request_body = request_to_start_local_transaction(var_start_local_transaction)
+    request_body =
+      StartLocalTransactionRequest.encode(%{start_local_transaction | key: partition_key})
 
     result =
       instance
