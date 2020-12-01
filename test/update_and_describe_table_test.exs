@@ -1,7 +1,7 @@
 defmodule ExAliyunOtsTest.UpdateAndDescribeTable do
   use ExUnit.Case
   require Logger
-  alias ExAliyunOts.Var
+  alias ExAliyunOts.{TableStore, Var}
   alias ExAliyunOts.Const.{PKType, OperationType, ReturnType}
   require PKType
   require OperationType
@@ -21,7 +21,7 @@ defmodule ExAliyunOtsTest.UpdateAndDescribeTable do
     result = ExAliyunOts.Client.create_table(@instance_key, var_create_table)
     assert result == :ok
 
-    stream = %Var.StreamSpec{
+    stream = %TableStore.StreamSpec{
       is_enabled: true,
       expiration_time: 1
     }

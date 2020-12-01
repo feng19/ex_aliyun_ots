@@ -44,14 +44,7 @@ defmodule ExAliyunOtsTest.Search do
   end
 
   test "describe search index" do
-    var_request = %Search.DescribeSearchIndexRequest{
-      table_name: @table,
-      index_name: "test_search_index2"
-    }
-
-    result = Client.describe_search_index(@instance_key, var_request)
-
-    case result do
+    case ExAliyunOts.describe_search_index(@instance_key, @table, "test_search_index2") do
       {:ok, response} ->
         schema = response.schema
         field_schemas = schema.field_schemas

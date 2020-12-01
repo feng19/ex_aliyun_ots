@@ -193,12 +193,7 @@ defmodule ExAliyunOts.Timeline.Meta do
 
   def drop(%__MODULE__{instance: instance, table_name: table_name, index_name: index_name})
       when is_valid_string(table_name) and is_valid_string(index_name) do
-    var_del_search_index = %Search.DeleteSearchIndexRequest{
-      table_name: table_name,
-      index_name: index_name
-    }
-
-    del_search_index_result = Client.delete_search_index(instance, var_del_search_index)
+    del_search_index_result = ExAliyunOts.delete_search_index(instance, table_name, index_name)
 
     Logger.info(
       "Result to delete search index \"#{index_name}\" for timeline meta table \"#{table_name}\": #{

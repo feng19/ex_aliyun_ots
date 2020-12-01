@@ -68,7 +68,7 @@ defmodule ExAliyunOts do
   require ExAliyunOts.DSL, as: DSL
   require ExAliyunOts.Const.OperationType, as: OperationType
   alias ExAliyunOts.{Var, Client, Utils}
-  alias ExAliyunOts.TableStore.{ReturnType, Direction, CreateIndexRequest, IndexMeta}
+  alias ExAliyunOts.{TableStore, TableStoreSearch}
 
   @before_compile ExAliyunOts.MergeCompiler
   @type instance :: atom
@@ -175,7 +175,7 @@ defmodule ExAliyunOts do
   @spec create_index(
           instance,
           table_name :: String.t(),
-          index_meta :: IndexMeta.t(),
+          index_meta :: TableStore.IndexMeta.t(),
           include_base_data :: boolean()
         ) :: :ok | {:error, ExAliyunOts.Error.t()}
   def create_index(
@@ -184,7 +184,7 @@ defmodule ExAliyunOts do
         index_meta,
         include_base_data \\ true
       ) do
-    create_index_request = %CreateIndexRequest{
+    create_index_request = %TableStore.CreateIndexRequest{
       main_table_name: table_name,
       index_meta: index_meta,
       include_base_data: include_base_data
@@ -279,8 +279,11 @@ defmodule ExAliyunOts do
   Official document in [Chinese](https://help.aliyun.com/document_detail/53813.html) | [English](https://www.alibabacloud.com/help/doc-detail/53813.html)
   """
   @doc table: :table
-  @spec compute_split_points_by_size(instance :: atom(), table :: String.t(), splits_size :: integer()) ::
-          {:ok, map()} | {:error, ExAliyunOts.Error.t()}
+  @spec compute_split_points_by_size(
+          instance :: atom(),
+          table :: String.t(),
+          splits_size :: integer()
+        ) :: {:ok, map()} | {:error, ExAliyunOts.Error.t()}
   defdelegate compute_split_points_by_size(instance, table, splits_size), to: Client
 
   @doc """
@@ -887,7 +890,8 @@ defmodule ExAliyunOts do
   Official document in [Chinese](https://help.aliyun.com/document_detail/153862.html) | [English](https://www.alibabacloud.com/help/doc-detail/153862.htm)
   """
   @doc search: :search
-  @spec compute_splits(atom(), String.t(), String.t()) :: {:ok, map()} | {:error, ExAliyunOts.Error.t()}
+  @spec compute_splits(atom(), String.t(), String.t()) ::
+          {:ok, map()} | {:error, ExAliyunOts.Error.t()}
   defdelegate compute_splits(instance, table, index_name), to: Client
 
   @doc """
@@ -915,8 +919,12 @@ defmodule ExAliyunOts do
     duplicate data, refer the official document, once occurs an `OTSSessionExpired` error, must initiate another parallel scan task to re-query data.
   """
   @doc search: :search
-  @spec parallel_scan(instance :: atom(), table :: String.t(), index_name :: String.t(), options :: Keyword.t())
-          :: {:ok, map()} | {:error, ExAliyunOts.Error.t()}
+  @spec parallel_scan(
+          instance :: atom(),
+          table :: String.t(),
+          index_name :: String.t(),
+          options :: Keyword.t()
+        ) :: {:ok, map()} | {:error, ExAliyunOts.Error.t()}
   def parallel_scan(instance, table, index_name, options) do
     request = ExAliyunOts.Search.map_scan_options(table, index_name, options)
     Client.parallel_scan(instance, request)
@@ -963,17 +971,24 @@ defmodule ExAliyunOts do
 
   """
   @doc search: :search
-  @spec iterate_parallel_scan(instance :: atom(), table :: String.t(), index_name :: String.t(),
-          fun :: (term -> term), options :: Keyword.t()) :: term()
+  @spec iterate_parallel_scan(
+          instance :: atom(),
+          table :: String.t(),
+          index_name :: String.t(),
+          fun :: (term -> term),
+          options :: Keyword.t()
+        ) :: term()
   def iterate_parallel_scan(instance, table, index_name, fun, options) when is_function(fun) do
     result =
       instance
       |> stream_parallel_scan(table, index_name, options)
       |> fun.()
+
     case result do
       {:error, %ExAliyunOts.Error{code: "OTSSessionExpired"}} ->
         Logger.info("scan_query session expired, will renew a parallelscan task.")
         iterate_parallel_scan(instance, table, index_name, fun, options)
+
       other ->
         other
     end
@@ -1017,14 +1032,23 @@ defmodule ExAliyunOts do
 
   """
   @doc search: :search
-  @spec iterate_parallel_scan(instance :: atom(), table :: String.t(), index_name :: String.t(),
-    mod :: module(), fun :: atom(), args :: [term], options :: Keyword.t()) :: term()
+  @spec iterate_parallel_scan(
+          instance :: atom(),
+          table :: String.t(),
+          index_name :: String.t(),
+          mod :: module(),
+          fun :: atom(),
+          args :: [term],
+          options :: Keyword.t()
+        ) :: term()
   def iterate_parallel_scan(instance, table, index_name, mod, fun, args, options) do
     value = stream_parallel_scan(instance, table, index_name, options)
+
     case apply(mod, fun, [value | args]) do
       {:error, %ExAliyunOts.Error{code: "OTSSessionExpired"}} ->
         Logger.info("scan_query session expired, will renew a parallelscan task.")
         iterate_parallel_scan(instance, table, index_name, mod, fun, args, options)
+
       other ->
         other
     end
@@ -1040,10 +1064,13 @@ defmodule ExAliyunOts do
     Please see options of `iterate_parallel_scan/5`.
   """
   @doc search: :search
-  @spec stream_parallel_scan(instance :: atom(), table :: String.t(), index_name :: String.t(),
-          options :: Keyword.t()) :: Enumerable.t()
+  @spec stream_parallel_scan(
+          instance :: atom(),
+          table :: String.t(),
+          index_name :: String.t(),
+          options :: Keyword.t()
+        ) :: Enumerable.t()
   defdelegate stream_parallel_scan(instance, table, index_name, options), to: ExAliyunOts.Search
-
 
   @doc """
   Official document in [Chinese](https://help.aliyun.com/document_detail/117477.html) | [English](https://www.alibabacloud.com/help/doc-detail/117477.html)
@@ -1111,8 +1138,7 @@ defmodule ExAliyunOts do
           table :: String.t(),
           index_name :: String.t(),
           options :: Keyword.t()
-        ) ::
-          {:ok, map()} | {:error, ExAliyunOts.Error.t()}
+        ) :: {:ok, map()} | {:error, ExAliyunOts.Error.t()}
   def create_search_index(instance, table, index_name, options) do
     var_request = %Var.Search.CreateSearchIndexRequest{
       table_name: table,
@@ -1139,12 +1165,10 @@ defmodule ExAliyunOts do
   @spec delete_search_index(instance, table :: String.t(), index_name :: String.t()) ::
           {:ok, map()} | {:error, ExAliyunOts.Error.t()}
   def delete_search_index(instance, table, index_name) do
-    var_delete_request = %Var.Search.DeleteSearchIndexRequest{
+    Client.delete_search_index(instance, %TableStoreSearch.DeleteSearchIndexRequest{
       table_name: table,
       index_name: index_name
-    }
-
-    Client.delete_search_index(instance, var_delete_request)
+    })
   end
 
   @doc """
@@ -1160,12 +1184,10 @@ defmodule ExAliyunOts do
   @spec describe_search_index(instance, table :: String.t(), index_name :: String.t()) ::
           {:ok, map()} | {:error, ExAliyunOts.Error.t()}
   def describe_search_index(instance, table, index_name) do
-    var_describe_request = %Var.Search.DescribeSearchIndexRequest{
+    Client.describe_search_index(instance, %TableStoreSearch.DescribeSearchIndexRequest{
       table_name: table,
       index_name: index_name
-    }
-
-    Client.describe_search_index(instance, var_describe_request)
+    })
   end
 
   @doc """
@@ -1216,7 +1238,6 @@ defmodule ExAliyunOts do
   @doc local_transaction: :local_transaction
   defdelegate abort_transaction(instance, transaction_id), to: Client
 
-
   defp map_options(var, nil), do: var
 
   defp map_options(var, options) do
@@ -1234,7 +1255,7 @@ defmodule ExAliyunOts do
             Map.put(acc, key, map_direction(value))
 
           :stream_spec ->
-            Map.put(acc, key, struct(Var.StreamSpec, value))
+            put_stream_spec(acc, value)
 
           :time_range ->
             Map.put(acc, key, map_time_range(value))
@@ -1248,9 +1269,35 @@ defmodule ExAliyunOts do
     end)
   end
 
+  defp put_stream_spec(request, %{is_enabled: true, expiration_time: stream_expiration_time})
+       when is_integer(stream_expiration_time) and
+              (stream_expiration_time >= 1 and stream_expiration_time <= 24) do
+    stream_spec =
+      TableStore.StreamSpecification.new(
+        is_enabled: true,
+        expiration_time: stream_expiration_time
+      )
+
+    %{request | stream_spec: stream_spec}
+  end
+
+  defp put_stream_spec(request, %{is_enabled: false}) do
+    stream_spec = TableStore.StreamSpecification.new(is_enabled: false)
+    %{request | stream_spec: stream_spec}
+  end
+
+  defp put_stream_spec(request, %{is_enabled: nil}) do
+    request
+  end
+
+  defp put_stream_spec(_request, spec) do
+    raise ExAliyunOts.RuntimeError,
+          "Invalid stream_spec #{inspect(spec)}, is_enabled should be boolean and expiration_time should be an integer and in (1, 24)"
+  end
+
   defp map_return_type(nil), do: :RT_NONE
 
-  ReturnType.mapping()
+  TableStore.ReturnType.mapping()
   |> Map.keys()
   |> Enum.map(fn type ->
     downcase_type =
@@ -1264,7 +1311,7 @@ defmodule ExAliyunOts do
     raise ExAliyunOts.RuntimeError, "invalid return_type: #{inspect(invalid_return_type)}"
   end
 
-  Direction.mapping()
+  TableStore.Direction.mapping()
   |> Map.keys()
   |> Enum.map(fn type ->
     defp map_direction(unquote(Utils.downcase_atom(type))), do: unquote(type)
@@ -1276,12 +1323,12 @@ defmodule ExAliyunOts do
   end
 
   defp map_time_range(specific_time) when is_integer(specific_time) do
-    %Var.TimeRange{specific_time: specific_time}
+    %TableStore.TimeRange{specific_time: specific_time}
   end
 
   defp map_time_range({start_time, end_time})
        when is_integer(start_time) and is_integer(end_time) do
-    %Var.TimeRange{start_time: start_time, end_time: end_time}
+    %TableStore.TimeRange{start_time: start_time, end_time: end_time}
   end
 
   @operation_type_mapping OperationType.updates_supported()
@@ -1297,5 +1344,4 @@ defmodule ExAliyunOts do
       end
     end)
   end
-
 end

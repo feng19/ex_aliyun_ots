@@ -43,11 +43,6 @@ defmodule ExAliyunOts.Error do
   defstruct code: nil, message: "", request_id: nil, http_status_code: nil, datetime: nil
 end
 
-defmodule ExAliyunOts.Var.TimeRange do
-  @moduledoc false
-  defstruct [:start_time, :end_time, :specific_time]
-end
-
 defmodule ExAliyunOts.Var.UpdateRow do
   @moduledoc false
   require ExAliyunOts.Const.ReturnType, as: ReturnType
@@ -97,11 +92,6 @@ defmodule ExAliyunOts.Var.DeleteRow do
             transaction_id: nil
 end
 
-defmodule ExAliyunOts.Var.StreamSpec do
-  @moduledoc false
-  defstruct is_enabled: nil, expiration_time: nil
-end
-
 defmodule ExAliyunOts.Var.CreateTable do
   @moduledoc false
   defstruct table_name: "",
@@ -112,7 +102,7 @@ defmodule ExAliyunOts.Var.CreateTable do
             time_to_live: -1,
             max_versions: 1,
             deviation_cell_version_in_sec: 86_400,
-            stream_spec: %ExAliyunOts.Var.StreamSpec{},
+            stream_spec: nil,
             index_metas: []
 end
 
@@ -124,7 +114,7 @@ defmodule ExAliyunOts.Var.UpdateTable do
             time_to_live: -1,
             max_versions: 1,
             deviation_cell_version_in_sec: 86_400,
-            stream_spec: %ExAliyunOts.Var.StreamSpec{}
+            stream_spec: nil
 end
 
 defmodule ExAliyunOts.Var.GetRange do
@@ -193,16 +183,6 @@ defmodule ExAliyunOts.Var.Search do
   defmodule CreateSearchIndexRequest do
     @moduledoc false
     defstruct table_name: "", index_name: "", index_schema: %IndexSchema{}
-  end
-
-  defmodule DeleteSearchIndexRequest do
-    @moduledoc false
-    defstruct table_name: "", index_name: ""
-  end
-
-  defmodule DescribeSearchIndexRequest do
-    @moduledoc false
-    defstruct table_name: "", index_name: ""
   end
 
   defmodule FieldSchema do

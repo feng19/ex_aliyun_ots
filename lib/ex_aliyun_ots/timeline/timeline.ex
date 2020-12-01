@@ -6,8 +6,7 @@ defmodule ExAliyunOts.Timeline do
   import ExAliyunOts.Utils.Guards
   import ExAliyunOts.DSL, only: [condition: 1]
   require Logger
-  alias ExAliyunOts.{Client, Var, Utils}
-  alias ExAliyunOts.Var.Search
+  alias ExAliyunOts.{Client, Var, Var.Search, Utils}
   alias __MODULE__
 
   @seq_id_generation_auto :auto
@@ -243,12 +242,7 @@ defmodule ExAliyunOts.Timeline do
 
   def drop(%__MODULE__{instance: instance, table_name: table_name, index_name: index_name})
       when is_valid_string(table_name) and is_valid_string(index_name) do
-    var_del_search_index = %Search.DeleteSearchIndexRequest{
-      table_name: table_name,
-      index_name: index_name
-    }
-
-    del_search_index_result = Client.delete_search_index(instance, var_del_search_index)
+    del_search_index_result = ExAliyunOts.delete_search_index(instance, table_name, index_name)
 
     Logger.info(
       "Result to delete search index \"#{index_name}\" for timeline table \"#{table_name}\": #{

@@ -204,17 +204,8 @@ defmodule ExAliyunOts.Client.Search do
     result
   end
 
-  defp request_to_delete_search_index(%Search.DeleteSearchIndexRequest{
-         table_name: table_name,
-         index_name: index_name
-       }) do
-    [table_name: table_name, index_name: index_name]
-    |> DeleteSearchIndexRequest.new()
-    |> DeleteSearchIndexRequest.encode()
-  end
-
-  def remote_delete_search_index(instance, var_delete_search_index) do
-    request_body = request_to_delete_search_index(var_delete_search_index)
+  def remote_delete_search_index(instance, delete_search_index) do
+    request_body = DeleteSearchIndexRequest.encode(delete_search_index)
 
     instance
     |> Http.client("/DeleteSearchIndex", request_body, &DeleteSearchIndexResponse.decode/1)
@@ -233,17 +224,8 @@ defmodule ExAliyunOts.Client.Search do
     |> Http.post()
   end
 
-  defp request_to_describe_search_index(%Search.DescribeSearchIndexRequest{
-         table_name: table_name,
-         index_name: index_name
-       }) do
-    [table_name: table_name, index_name: index_name]
-    |> DescribeSearchIndexRequest.new()
-    |> DescribeSearchIndexRequest.encode()
-  end
-
-  def remote_describe_search_index(instance, var_describe_search_index) do
-    request_body = request_to_describe_search_index(var_describe_search_index)
+  def remote_describe_search_index(instance, describe_search_index) do
+    request_body = DescribeSearchIndexRequest.encode(describe_search_index)
 
     instance
     |> Http.client("/DescribeSearchIndex", request_body, &DescribeSearchIndexResponse.decode/1)

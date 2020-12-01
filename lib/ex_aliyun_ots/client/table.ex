@@ -1,5 +1,7 @@
 defmodule ExAliyunOts.Client.Table do
   @moduledoc false
+  import ExAliyunOts.Logger, only: [debug: 1]
+  alias ExAliyunOts.{Http, Utils}
 
   alias ExAliyunOts.TableStore.{
     CreateTableRequest,
@@ -20,13 +22,9 @@ defmodule ExAliyunOts.Client.Table do
     UpdateTableResponse,
     DescribeTableRequest,
     DescribeTableResponse,
-    StreamSpecification,
     ComputeSplitPointsBySizeRequest,
     ComputeSplitPointsBySizeResponse
   }
-
-  alias ExAliyunOts.{Var, Http, Utils}
-  import ExAliyunOts.Logger, only: [debug: 1]
 
   defp request_to_create_table(var_create_table) do
     primary_key_list = Enum.map(var_create_table.primary_keys, &map_primary_key_schema/1)
@@ -58,9 +56,9 @@ defmodule ExAliyunOts.Client.Table do
       table_meta: table_meta,
       reserved_throughput: reserved_throughput,
       table_options: table_options,
-      index_metas: var_create_table.index_metas
+      index_metas: var_create_table.index_metas,
+      stream_spec: var_create_table.stream_spec
     )
-    |> put_stream_spec(var_create_table.stream_spec)
     |> CreateTableRequest.encode()
   end
 
@@ -150,9 +148,9 @@ defmodule ExAliyunOts.Client.Table do
     UpdateTableRequest.new(
       table_name: var_update_table.table_name,
       reserved_throughput: reserved_throughput,
-      table_options: table_options
+      table_options: table_options,
+      stream_spec: var_update_table.stream_spec
     )
-    |> put_stream_spec(var_update_table.stream_spec)
     |> UpdateTableRequest.encode()
   end
 
@@ -194,7 +192,11 @@ defmodule ExAliyunOts.Client.Table do
   def remote_compute_split_points_by_size(instance, request_body) do
     result =
       instance
-      |> Http.client("/ComputeSplitPointsBySize", request_body, &ComputeSplitPointsBySizeResponse.decode/1)
+      |> Http.client(
+        "/ComputeSplitPointsBySize",
+        request_body,
+        &ComputeSplitPointsBySizeResponse.decode/1
+      )
       |> Http.post()
 
     debug([
@@ -222,35 +224,6 @@ defmodule ExAliyunOts.Client.Table do
           "Invalid throughput setting, at least set an integer for read or write, but setting read: #{
             inspect(read)
           }, write: #{inspect(write)}"
-  end
-
-  defp put_stream_spec(
-         request,
-         %Var.StreamSpec{is_enabled: true, expiration_time: stream_expiration_time}
-       )
-       when is_integer(stream_expiration_time) and
-              (stream_expiration_time >= 1 and stream_expiration_time <= 24) do
-    stream_spec =
-      StreamSpecification.new(
-        enable_stream: true,
-        expiration_time: stream_expiration_time
-      )
-
-    %{request | stream_spec: stream_spec}
-  end
-
-  defp put_stream_spec(request, %Var.StreamSpec{is_enabled: false}) do
-    stream_spec = StreamSpecification.new(enable_stream: false)
-    %{request | stream_spec: stream_spec}
-  end
-
-  defp put_stream_spec(request, %Var.StreamSpec{is_enabled: nil}) do
-    request
-  end
-
-  defp put_stream_spec(_request, spec) do
-    raise ExAliyunOts.RuntimeError,
-          "Invalid stream_spec #{inspect(spec)}, is_enabled should be boolean and expiration_time should be an integer and in (1, 24)"
   end
 
   defp map_defined_column_schema({key_name, :binary}),

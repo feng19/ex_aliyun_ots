@@ -2,12 +2,14 @@ defmodule ExAliyunOts.Client.Row do
   @moduledoc false
 
   import ExAliyunOts.Logger, only: [debug: 1]
+  require ExAliyunOts.Const.OperationType, as: OperationType
+  require ExAliyunOts.Const.ReturnType, as: ReturnType
+  alias ExAliyunOts.{PlainBuffer, Http, Filter}
 
   alias ExAliyunOts.TableStore.{
     PutRowRequest,
     PutRowResponse,
     ReturnContent,
-    TimeRange,
     GetRowRequest,
     GetRowResponse,
     UpdateRowRequest,
@@ -25,16 +27,11 @@ defmodule ExAliyunOts.Client.Row do
     DeleteRowResponse
   }
 
-  alias ExAliyunOts.{PlainBuffer, Var, Http, Filter}
-  alias ExAliyunOts.Const.{OperationType, ReturnType}
-
-  require OperationType
-  require ReturnType
-
   @batch_write_limit_per_request 200
 
   defp request_to_put_row(var_put_row) do
-    proto_condition = Map.update!(var_put_row.condition, :column_condition, &Filter.serialize_filter/1)
+    proto_condition =
+      Map.update!(var_put_row.condition, :column_condition, &Filter.serialize_filter/1)
 
     serialized_row =
       PlainBuffer.serialize_for_put_row(var_put_row.primary_keys, var_put_row.attribute_columns)
@@ -78,19 +75,14 @@ defmodule ExAliyunOts.Client.Row do
         transaction_id: var_get_row.transaction_id
       )
 
-    parameter_time_range = var_get_row.time_range
+    case var_get_row.time_range do
+      nil ->
+        Map.put(get_row_request, :max_versions, var_get_row.max_versions)
 
-    get_row_request =
-      case parameter_time_range do
-        %Var.TimeRange{} ->
-          time_range = prepare_time_range(parameter_time_range)
-          Map.put(get_row_request, :time_range, time_range)
-
-        nil ->
-          Map.put(get_row_request, :max_versions, var_get_row.max_versions)
-      end
-
-    GetRowRequest.encode(get_row_request)
+      time_range ->
+        Map.put(get_row_request, :time_range, time_range)
+    end
+    |> GetRowRequest.encode()
   end
 
   def remote_get_row(instance, var_get_row) do
@@ -110,7 +102,8 @@ defmodule ExAliyunOts.Client.Row do
     serialized_row =
       PlainBuffer.serialize_for_update_row(var_update_row.primary_keys, var_update_row.updates)
 
-    proto_condition = Map.update!(var_update_row.condition, :column_condition, &Filter.serialize_filter/1)
+    proto_condition =
+      Map.update!(var_update_row.condition, :column_condition, &Filter.serialize_filter/1)
 
     [
       table_name: var_update_row.table_name,
@@ -139,7 +132,8 @@ defmodule ExAliyunOts.Client.Row do
   defp request_to_delete_row(var_delete_row) do
     serialized_primary_keys = PlainBuffer.serialize_for_delete_row(var_delete_row.primary_keys)
 
-    proto_condition = Map.update!(var_delete_row.condition, :column_condition, &Filter.serialize_filter/1)
+    proto_condition =
+      Map.update!(var_delete_row.condition, :column_condition, &Filter.serialize_filter/1)
 
     [
       table_name: var_delete_row.table_name,
@@ -166,8 +160,6 @@ defmodule ExAliyunOts.Client.Row do
   end
 
   defp request_to_get_range(var_get_range, next_start_primary_key) do
-    parameter_time_range = var_get_range.time_range
-
     prepared_inclusive_start_primary_keys =
       if next_start_primary_key == nil do
         PlainBuffer.serialize_primary_keys(var_get_range.inclusive_start_primary_keys)
@@ -194,17 +186,14 @@ defmodule ExAliyunOts.Client.Row do
         transaction_id: var_get_range.transaction_id
       )
 
-    get_range_request =
-      case parameter_time_range do
-        %Var.TimeRange{} ->
-          time_range = prepare_time_range(parameter_time_range)
-          Map.put(get_range_request, :time_range, time_range)
+    case var_get_range.time_range do
+      nil ->
+        Map.put(get_range_request, :max_versions, var_get_range.max_versions)
 
-        nil ->
-          Map.put(get_range_request, :max_versions, var_get_range.max_versions)
-      end
-
-    GetRangeRequest.encode(get_range_request)
+      time_range ->
+        Map.put(get_range_request, :time_range, time_range)
+    end
+    |> GetRangeRequest.encode()
   end
 
   def remote_get_range(instance, var_get_range, next_start_primary_key \\ nil) do
@@ -249,15 +238,12 @@ defmodule ExAliyunOts.Client.Row do
         end_column: var_batch_get_row.end_column
       )
 
-    parameter_time_range = var_batch_get_row.time_range
-
-    case parameter_time_range do
-      %Var.TimeRange{} ->
-        time_range = prepare_time_range(parameter_time_range)
-        Map.put(batch_get_row_request, :time_range, time_range)
-
+    case var_batch_get_row.time_range do
       nil ->
         Map.put(batch_get_row_request, :max_versions, var_batch_get_row.max_versions)
+
+      time_range ->
+        Map.put(batch_get_row_request, :time_range, time_range)
     end
   end
 
@@ -434,26 +420,6 @@ defmodule ExAliyunOts.Client.Row do
       timeout: :infinity
     )
     |> Enum.map(fn {:ok, response} -> response end)
-  end
-
-  defp prepare_time_range(%Var.TimeRange{
-         start_time: start_time,
-         end_time: end_time,
-         specific_time: specific_time
-       }) do
-    cond do
-      is_integer(start_time) and is_integer(end_time) ->
-        TimeRange.new(start_time: start_time, end_time: end_time)
-
-      is_integer(specific_time) ->
-        TimeRange.new(specific_time: specific_time)
-
-      true ->
-        raise ExAliyunOts.RuntimeError,
-              "Invalid time_range, start_time: #{inspect(start_time)}, end_time: #{
-                inspect(end_time)
-              }, specific: #{inspect(specific_time)}"
-    end
   end
 
   defp decode_row_from_batch(row_in_batch_response) do

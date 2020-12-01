@@ -1,14 +1,10 @@
 defmodule ExAliyunOtsTest.Support.Search do
   import ExAliyunOts.DSL, only: [condition: 1]
   require Logger
-  alias ExAliyunOts.{Var, Client}
-  alias ExAliyunOts.Var.Search
-  alias ExAliyunOts.Const.PKType
-  alias ExAliyunOts.Const.Search.FieldType
-  require PKType
-  require FieldType
-
+  require ExAliyunOts.Const.PKType, as: PKType
+  require ExAliyunOts.Const.Search.FieldType, as: FieldType
   import ExAliyunOts.Search, only: [field_schema_keyword: 1, field_schema_nested: 2]
+  alias ExAliyunOts.{Var, Var.Search, Client}
 
   def init(instance_key, table, index_names, opts \\ []) do
     initialize(instance_key, table, index_names)
@@ -47,26 +43,17 @@ defmodule ExAliyunOtsTest.Support.Search do
 
   def clean(instance_key, table, useless_index_names) do
     Enum.map(useless_index_names, fn index_name ->
-      var_request = %Search.DeleteSearchIndexRequest{
-        table_name: table,
-        index_name: index_name
-      }
-
-      {:ok, _response} = Client.delete_search_index(instance_key, var_request)
+      {:ok, _response} = ExAliyunOts.delete_search_index(instance_key, table, index_name)
     end)
 
-    ExAliyunOts.Client.delete_table(instance_key, table)
+    ExAliyunOts.delete_table(instance_key, table)
     Logger.info("clean search_indexes and delete `#{table}` table")
   end
 
   def clean_group_by(instance_key, table, index_name) do
-    var_request = %Search.DeleteSearchIndexRequest{
-      table_name: table,
-      index_name: index_name
-    }
+    {:ok, _response} = ExAliyunOts.delete_search_index(instance_key, table, index_name)
 
-    {:ok, _response} = Client.delete_search_index(instance_key, var_request)
-    ExAliyunOts.Client.delete_table(instance_key, table)
+    ExAliyunOts.delete_table(instance_key, table)
     Logger.info("clean search_indexes and delete `#{table}` table")
   end
 
